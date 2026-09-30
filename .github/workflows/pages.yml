@@ -1,0 +1,51 @@
+name: Pubblica l'indice
+
+# Solo main e' "pubblicato": quando il registry viene aggiornato su main,
+# l'index.json va su GitHub Pages (https://cuelith.github.io/cuelith-registry/index.json).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: cuelith-registry
+      - uses: actions/checkout@v7
+        with:
+          repository: Cuelith/cuelith-sdk
+          ref: main
+          path: cuelith-sdk
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: cuelith-registry/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: SDK
+        working-directory: cuelith-sdk
+        run: pnpm install --frozen-lockfile && pnpm build
+      - name: Controllo e indice
+        working-directory: cuelith-registry
+        run: pnpm install && pnpm validate && pnpm build
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: cuelith-registry/dist
+      - id: deploy
+        uses: actions/deploy-pages@v5

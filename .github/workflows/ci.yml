@@ -1,0 +1,34 @@
+name: CI
+
+# Ogni proposta di modulo (pull request) e ogni push vengono controllati:
+# file valido, pacchetti scaricabili con l'impronta e i permessi dichiarati.
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: cuelith-registry
+      - uses: actions/checkout@v7
+        with:
+          repository: Cuelith/cuelith-sdk
+          ref: dev
+          path: cuelith-sdk
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: cuelith-registry/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: SDK
+        working-directory: cuelith-sdk
+        run: pnpm install --frozen-lockfile && pnpm build
+      - name: Controllo dei moduli
+        working-directory: cuelith-registry
+        run: pnpm install && pnpm validate && pnpm build

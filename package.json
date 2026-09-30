@@ -1,0 +1,17 @@
+{
+  "name": "cuelith-registry",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@12.8.1",
+  "description": "Registry dei moduli di Cuelith: un file per modulo in plugins/, validato dalla CI e pubblicato come index.json su GitHub Pages.",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "validate:offline": "node scripts/validate.mjs --offline",
+    "build": "node scripts/build-index.mjs"
+  },
+  "dependencies": {
+    "@cuelith/protocol": "link:../cuelith-sdk/packages/protocol",
+    "fflate": "0.8.3"
+  }
+}
