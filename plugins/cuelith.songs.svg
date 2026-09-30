@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>Canti</title>
+  <rect x="2.5" y="5" width="10" height="2.2" rx="1.1" fill="#ECEAE4"/>
+  <rect x="2.5" y="10" width="8" height="2.2" rx="1.1" fill="#ECEAE4"/>
+  <rect x="2.5" y="15" width="6" height="2.2" rx="1.1" fill="#A9ADB4"/>
+  <rect x="17" y="3.5" width="2" height="14" rx="1" fill="#37D1BF"/>
+  <path d="M19 3.5c1.6.6 2.8 1.9 2.8 3.8v1.3c-.7-1.2-1.6-1.8-2.8-2.1z" fill="#37D1BF"/>
+  <circle cx="15.2" cy="17.6" r="3.1" fill="#37D1BF"/>
+</svg>

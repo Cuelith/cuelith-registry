@@ -16,6 +16,31 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const files = (await readdir(dir)).filter((name) => name.endsWith(".json")).sort();
 const seen = new Set();
+/** Impronta dell'icona -> id del modulo: ogni modulo ha un'icona sua. */
+const icons = new Map();
+const MAX_ICON = 40 * 1024;
+
+/** Icona del registry (plugins/<id>.svg): SVG semplice, senza script ne' risorse esterne. */
+async function checkIcon(file, id) {
+  let icon;
+  try {
+    icon = await readFile(join(dir, `${id}.svg`));
+  } catch {
+    fail(file, `manca l'icona plugins/${id}.svg (obbligatoria, SVG)`);
+    return undefined;
+  }
+  const text = icon.toString("utf8");
+  if (icon.length > MAX_ICON) fail(file, `icona troppo grande (massimo ${MAX_ICON} byte)`);
+  if (!/^\s*(<\?xml[^>]*>\s*)?<svg[\s>]/.test(text)) fail(file, "l'icona non e' un file SVG");
+  if (/<script|<foreignObject|\son[a-z]+\s*=|(?:href|src)\s*=\s*["']\s*(?:https?:|\/\/|data:)/i.test(text)) {
+    fail(file, "l'icona contiene script o risorse esterne");
+  }
+  const sha = createHash("sha256").update(icon).digest("hex");
+  const other = icons.get(sha);
+  if (other !== undefined) fail(file, `icona identica a quella di ${other}: ogni modulo ne ha una sua`);
+  icons.set(sha, id);
+  return icon;
+}
 
 for (const file of files) {
   let entry;
@@ -35,11 +60,13 @@ for (const file of files) {
   if (seen.has(plugin.id)) fail(file, `id ripetuto: ${plugin.id}`);
   seen.add(plugin.id);
 
+  const icon = await checkIcon(file, plugin.id);
+
   const versions = plugin.versions.map((v) => v.version);
   if (new Set(versions).size !== versions.length) fail(file, "versioni ripetute");
 
   if (offline) continue;
-  for (const version of plugin.versions) {
+  for (const [position, version] of plugin.versions.entries()) {
     const where = `${file} ${version.version}`;
     let data;
     try {
@@ -56,8 +83,16 @@ for (const file of files) {
 
     let manifest;
     try {
-      const entries = unzipSync(data, { filter: (f) => f.name === "cuelith-plugin.json" });
+      const entries = unzipSync(data);
       manifest = PluginManifestSchema.parse(JSON.parse(strFromU8(entries["cuelith-plugin.json"])));
+      // L'ultima versione porta l'icona del registry, identica.
+      if (position === 0) {
+        const packaged = manifest.icon === undefined ? undefined : entries[manifest.icon];
+        if (packaged === undefined) fail(where, "il pacchetto non ha l'icona (campo icon del manifest)");
+        else if (icon !== undefined && !Buffer.from(packaged).equals(icon)) {
+          fail(where, `l'icona del pacchetto e' diversa da plugins/${plugin.id}.svg`);
+        }
+      }
     } catch {
       fail(where, "il pacchetto non contiene un manifest valido nella radice");
       continue;

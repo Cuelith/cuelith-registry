@@ -7,7 +7,13 @@ import { RegistryIndexSchema } from "@cuelith/protocol";
 const root = join(import.meta.dirname, "..");
 const files = (await readdir(join(root, "plugins"))).filter((n) => n.endsWith(".json")).sort();
 const plugins = [];
-for (const file of files) plugins.push(JSON.parse(await readFile(join(root, "plugins", file), "utf8")));
+for (const file of files) {
+  const plugin = JSON.parse(await readFile(join(root, "plugins", file), "utf8"));
+  // L'icona (controllata da validate.mjs) viaggia nell'indice: il marketplace
+  // la mostra prima di installare, senza altre richieste.
+  const icon = await readFile(join(root, "plugins", `${plugin.id}.svg`));
+  plugins.push({ ...plugin, icon: `data:image/svg+xml;base64,${icon.toString("base64")}` });
+}
 
 const index = RegistryIndexSchema.parse({
   schema: 1,
