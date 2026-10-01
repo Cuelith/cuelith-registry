@@ -9,40 +9,16 @@
   "verified": true,
   "versions": [
     {
-      "version": "0.4.1",
-      "engines": { "cuelith": "^0.1.0", "protocol": "^1.6.0" },
-      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.4.1/cuelith.songs-0.4.1.cpkg",
-      "sha256": "60da947cec68562774acf80da8309c98253b54f7f381f887ace14cbd13516e7b",
-      "size": 161369,
+      "version": "0.4.2",
+      "engines": {
+        "cuelith": "^0.1.0",
+        "protocol": "^1.6.0"
+      },
+      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.4.2/cuelith.songs-0.4.2.cpkg",
+      "sha256": "211fd77e9f75634a3a8eab6a1e6f8d0025e020d1c57ab1bba27fa5d2b6efcb92",
+      "size": 162126,
       "permissions": [],
-      "published": "2026-10-01T13:12:14Z"
-    },
-    {
-      "version": "0.4.0",
-      "engines": { "cuelith": "^0.1.0", "protocol": "^1.6.0" },
-      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.4.0/cuelith.songs-0.4.0.cpkg",
-      "sha256": "cf4fdab8d1c3af17b0a940971f474deeed5e3885779591f91009b245bae0b220",
-      "size": 161319,
-      "permissions": [],
-      "published": "2026-09-30T23:26:59Z"
-    },
-    {
-      "version": "0.3.0",
-      "engines": { "cuelith": "^0.1.0", "protocol": "^1.5.0" },
-      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.3.0/cuelith.songs-0.3.0.cpkg",
-      "sha256": "60b3afa3cdf9a30efb90d659fad55aca935ab9c397f88c41f4b4a36b1d1fa2e7",
-      "size": 160447,
-      "permissions": [],
-      "published": "2026-09-30T19:23:45Z"
-    },
-    {
-      "version": "0.2.1",
-      "engines": { "cuelith": "^0.1.0", "protocol": "^1.4.0" },
-      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.2.1/cuelith.songs-0.2.1.cpkg",
-      "sha256": "5e1e9d09c55bdc0d259fa01aa86eb1c02421a93037ce667b1acc9b3a22f1522a",
-      "size": 159896,
-      "permissions": [],
-      "published": "2026-09-30T18:35:11Z"
+      "published": "2026-10-01T22:10:41Z"
     }
   ]
 }
