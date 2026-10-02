@@ -9,6 +9,18 @@
   "verified": true,
   "versions": [
     {
+      "version": "0.5.0",
+      "engines": {
+        "cuelith": ">=0.1.0 <1.0.0",
+        "protocol": "^1.6.0"
+      },
+      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.5.0/cuelith.songs-0.5.0.cpkg",
+      "sha256": "567b78e0dd4e645bff772860d686bcc37950bdf4fe91ca533785e4e76be956e3",
+      "size": 164658,
+      "permissions": [],
+      "published": "2026-10-02T07:38:59Z"
+    },
+    {
       "version": "0.4.2",
       "engines": {
         "cuelith": "^0.1.0",
