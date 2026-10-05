@@ -6,3 +6,4 @@ Registry dei moduli di Cuelith (cap. 13 e 26 del documento di progetto in `cueli
 - `scripts/validate.mjs`: file, id unici, e per ogni versione pacchetto scaricabile con dimensione, SHA-256 e manifest (id, versione, famiglia, engines, permessi) coerenti. `--offline` salta i download.
 - `scripts/build-index.mjs`: `dist/index.json` pubblicato su GitHub Pages dalla workflow `pages.yml`, solo da `main`.
 - Lavoro su `dev`; `main` = indice pubblicato.
+- Il campo `license` di una voce è quello del pacchetto indicato: Canti 0.5.0 è Apache-2.0; la voce passa a GPL-3.0-or-later quando esce il plugin con licenza GPL (decisione 0012).
