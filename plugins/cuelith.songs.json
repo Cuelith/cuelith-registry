@@ -3,11 +3,23 @@
   "name": "Canti",
   "description": "Canti con strofe, ritornelli e ordine di proiezione. Importa ed esporta OpenLyrics e ChordPro.",
   "publisher": "Cuelith",
-  "license": "Apache-2.0",
+  "license": "GPL-3.0-or-later",
   "repository": "https://github.com/Cuelith/plugin-songs",
   "family": "function",
   "verified": true,
   "versions": [
+    {
+      "version": "0.5.1",
+      "engines": {
+        "cuelith": ">=0.1.0 <1.0.0",
+        "protocol": "^1.6.0"
+      },
+      "url": "https://github.com/Cuelith/plugin-songs/releases/download/v0.5.1/cuelith.songs-0.5.1.cpkg",
+      "sha256": "800bc5e95694c1a47428b65c004fec005382caa78333d5ee18bbed3d0dc5a45f",
+      "size": 173169,
+      "permissions": [],
+      "published": "2026-10-05T06:34:42Z"
+    },
     {
       "version": "0.5.0",
       "engines": {
