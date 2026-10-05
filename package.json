@@ -8,7 +8,8 @@
   "scripts": {
     "validate": "node scripts/validate.mjs",
     "validate:offline": "node scripts/validate.mjs --offline",
-    "build": "node scripts/build-index.mjs"
+    "build": "node scripts/build-index.mjs",
+    "test": "node --test test/registry.test.mjs"
   },
   "dependencies": {
     "@cuelith/protocol": "link:../cuelith-sdk/packages/protocol",

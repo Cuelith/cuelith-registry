@@ -2,14 +2,30 @@
 // id unici, e per ogni versione il pacchetto scaricato corrisponde a quanto
 // dichiarato (dimensione, impronta SHA-256, manifest con stesso id, versione,
 // compatibilita' e permessi). Con --offline salta i download (controllo veloce).
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { PluginManifestSchema, RegistryPluginSchema } from "@cuelith/protocol";
+import { join, resolve } from "node:path";
+import {
+  packageSignatureMessage,
+  PluginManifestSchema,
+  RegistryPluginSchema,
+} from "@cuelith/protocol";
 import { strFromU8, unzipSync } from "fflate";
 
 const offline = process.argv.includes("--offline");
-const dir = join(import.meta.dirname, "..", "plugins");
+// --dir <cartella>: per le prove, al posto di plugins/.
+const dirArg = process.argv.indexOf("--dir");
+const dir =
+  dirArg === -1 ? join(import.meta.dirname, "..", "plugins") : resolve(process.argv[dirArg + 1]);
+
+// Prefisso DER di una chiave pubblica Ed25519: seguono i 32 byte della chiave.
+const ED25519_SPKI = Buffer.from("302a300506032b6570032100", "hex");
+const authorPublicKey = (authorKey) =>
+  createPublicKey({
+    key: Buffer.concat([ED25519_SPKI, Buffer.from(authorKey, "base64url")]),
+    format: "der",
+    type: "spki",
+  });
 const errors = [];
 const fail = (file, message) => errors.push(`${file}: ${message}`);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -64,6 +80,19 @@ for (const file of files) {
 
   const versions = plugin.versions.map((v) => v.version);
   if (new Set(versions).size !== versions.length) fail(file, "versioni ripetute");
+
+  // Chiave dell'autore: ogni versione porta la firma del suo pacchetto (id,
+  // versione e impronta), verificabile senza scaricare nulla.
+  if (plugin.authorKey !== undefined) {
+    const key = authorPublicKey(plugin.authorKey);
+    for (const version of plugin.versions) {
+      const text = packageSignatureMessage(plugin.id, version.version, version.sha256);
+      const signature = Buffer.from(version.signature ?? "", "base64url");
+      if (!verify(null, Buffer.from(text), key, signature)) {
+        fail(`${file} ${version.version}`, "la firma non corrisponde alla chiave dell'autore");
+      }
+    }
+  }
 
   if (offline) continue;
   for (const [position, version] of plugin.versions.entries()) {

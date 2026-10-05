@@ -31,4 +31,4 @@ jobs:
         run: pnpm install --frozen-lockfile && pnpm build
       - name: Controllo dei moduli
         working-directory: cuelith-registry
-        run: pnpm install && pnpm validate && pnpm build
+        run: pnpm install && pnpm validate && pnpm build && pnpm test
