@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: Cuelith/cuelith-core
-          ref: main
+          ref: dev
           path: cuelith-core
       - uses: pnpm/action-setup@v6
         with:
