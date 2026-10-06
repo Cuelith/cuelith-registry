@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Ogni giorno si rifa l'indice: cosi' un plugin che diventa dormiente sparisce dalla vetrina.
+  schedule:
+    - cron: "45 5 * * *"
 
 permissions:
   contents: read
@@ -25,6 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           path: cuelith-registry
       - uses: actions/checkout@v7
         with:

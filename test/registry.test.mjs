@@ -68,6 +68,8 @@ function registry(entries) {
   return dir;
 }
 const run = (script, args) => {
+  // Le prove non vanno in rete: senza un elenco di dormienti proprio, non se ne nasconde nessuno.
+  if (script === "build-index.mjs" && !args.includes("--dormant-file")) args = [...args, "--no-dormant"];
   try {
     const out = execFileSync(process.execPath, [join(scripts, script), ...args], {
       encoding: "utf8",
@@ -193,4 +195,25 @@ test("ritirato: stesso id nella vetrina e tra i ritirati e' rifiutato; voce non 
   writeFileSync(join(bad, "prova.rotto.json"), JSON.stringify(noLicensing));
   writeFileSync(join(bad, "prova.rotto.svg"), icon(5555));
   assert.equal(run("validate.mjs", ["--offline", "--dir", registry([free("prova.altro")]), "--withdrawn", bad]).ok, false);
+});
+
+test("dormienti: spariscono dai due indici ma restano in licenses.json; un elenco illeggibile non nasconde nulla", () => {
+  const dir = registry([free("prova.uno"), free("prova.due"), paid("prova.tre")]);
+  const list = join(temp, `dormant${String(counter)}.json`);
+  writeFileSync(list, JSON.stringify({ dormant: ["prova.due", "prova.tre", 42] }));
+  const out = join(temp, `out-dormant${String(counter)}`);
+  const built = run("build-index.mjs", ["--dir", dir, "--out", out, "--dormant-file", list]);
+  assert.equal(built.ok, true, built.out);
+  const read = (name) => JSON.parse(readFileSync(join(out, name), "utf8"));
+  assert.deepEqual(read("index.json").plugins.map((p) => p.id), ["prova.uno"]);
+  assert.deepEqual(read("index-2.json").plugins.map((p) => p.id), ["prova.uno"]);
+  // Chi ha comprato il plugin dormiente continua a poter rinnovare la licenza.
+  assert.deepEqual(read("licenses.json").plugins.map((p) => [p.id, p.withdrawn]), [["prova.tre", false]]);
+
+  const broken = join(temp, `broken${String(counter)}.json`);
+  writeFileSync(broken, "non e json");
+  const out2 = join(temp, `out-broken${String(counter)}`);
+  const again = run("build-index.mjs", ["--dir", dir, "--out", out2, "--dormant-file", broken]);
+  assert.equal(again.ok, true, again.out);
+  assert.equal(JSON.parse(readFileSync(join(out2, "index.json"), "utf8")).plugins.length, 2);
 });
