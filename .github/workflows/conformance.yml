@@ -1,0 +1,61 @@
+name: Conformita
+
+# Ogni plugin del catalogo viene provato con la suite di conformita' del nucleo
+# (apps/conformance): a ogni proposta che tocca plugins/, ogni settimana e a mano
+# a ogni rilascio del nucleo:
+#   gh workflow run conformance.yml -R Cuelith/cuelith-registry -f core=0.3.2
+# Una prova superata e' un controllo tecnico, non una garanzia di sicurezza o qualita'.
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ["plugins/**", "scripts/conformance.mjs", ".github/workflows/conformance.yml"]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      core:
+        description: "Versione del nucleo contro cui provare (vuota = quella del ramo main)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: cuelith-registry
+      - uses: actions/checkout@v7
+        with:
+          repository: Cuelith/cuelith-sdk
+          ref: main
+          path: cuelith-sdk
+      - uses: actions/checkout@v7
+        with:
+          repository: Cuelith/cuelith-core
+          ref: main
+          path: cuelith-core
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: cuelith-core/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: SDK
+        working-directory: cuelith-sdk
+        run: pnpm install --frozen-lockfile && pnpm build
+      - name: Suite di conformita
+        working-directory: cuelith-core
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @cuelith-core/engine build
+          pnpm --filter @cuelith-core/conformance build
+      - name: Prova di tutti i plugin
+        working-directory: cuelith-registry
+        env:
+          CORE: ${{ github.event.inputs.core }}
+        run: |
+          core="${CORE:-$(node -p "require('../cuelith-core/apps/desktop/package.json').version")}"
+          node scripts/conformance.mjs --cli ../cuelith-core/apps/conformance/dist/cli.js --core "$core"
