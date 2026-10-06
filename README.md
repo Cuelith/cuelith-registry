@@ -34,6 +34,18 @@ Un plugin `paid` deve avere prezzo, acquisto e licenza; uno `free` non può aver
 - `index.json` (schema 1): solo i plugin **gratuiti**, solo coi campi di sempre. I programmi già installati (fino alla 0.2.5) rifiutano un indice con campi che non conoscono: questo file non cambia forma.
 - `index-2.json` (schema 2): **tutti** i plugin, coi campi nuovi. Lo leggeranno i programmi dalla versione che introduce il marketplace a pagamento.
 
+- `licenses.json` (schema 1): la licenza (negozio e prodotto) di **tutti** i plugin a pagamento, anche ritirati. Lo legge solo il Notaio del sito, non i programmi.
+
+## Ritirare un plugin dalla vetrina
+
+Per le condizioni del marketplace (art. 7) un plugin si può togliere dal catalogo senza togliere la licenza a chi l'ha già comprato:
+
+1. Sposta i due file: `git mv plugins/<id>.json withdrawn/<id>.json` e `git mv plugins/<id>.svg withdrawn/<id>.svg` (crea la cartella `withdrawn/` la prima volta).
+2. Apri la pull request come le altre: la CI controlla la voce e `pnpm build` la toglie da `index.json` e `index-2.json` ma la tiene in `licenses.json`.
+3. Dal pannello del sito premi «Dimentica» sull'indirizzo dell'autore (solo se non serve più).
+
+Il plugin non si può più comprare né installare dal marketplace; chi l'ha già comprato continua a rinnovare la licenza e può spostarla su un altro computer. Per rimetterlo in vetrina, sposta i file di nuovo in `plugins/`.
+
 I moduli dell'organizzazione Cuelith sono segnati `"verified": true`. Gli altri compaiono come "non verificati", con un avviso prima di installarli.
 
 ## Comandi

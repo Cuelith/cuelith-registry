@@ -3,6 +3,7 @@
 // dichiarato (dimensione, impronta SHA-256, manifest con stesso id, versione,
 // compatibilita' e permessi). Con --offline salta i download (controllo veloce).
 import { createHash, createPublicKey, verify } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
@@ -17,6 +18,13 @@ const offline = process.argv.includes("--offline");
 const dirArg = process.argv.indexOf("--dir");
 const dir =
   dirArg === -1 ? join(import.meta.dirname, "..", "plugins") : resolve(process.argv[dirArg + 1]);
+// --withdrawn <cartella>: i plugin ritirati dalla vetrina (withdrawn/). Restano
+// nel registro perche' le licenze gia' vendute continuino a rinnovarsi.
+const withdrawnArg = process.argv.indexOf("--withdrawn");
+const withdrawnDir =
+  withdrawnArg === -1
+    ? join(import.meta.dirname, "..", "withdrawn")
+    : resolve(process.argv[withdrawnArg + 1]);
 
 // Prefisso DER di una chiave pubblica Ed25519: seguono i 32 byte della chiave.
 const ED25519_SPKI = Buffer.from("302a300506032b6570032100", "hex");
@@ -30,14 +38,21 @@ const errors = [];
 const fail = (file, message) => errors.push(`${file}: ${message}`);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-const files = (await readdir(dir)).filter((name) => name.endsWith(".json")).sort();
+const listed = (await readdir(dir)).filter((name) => name.endsWith(".json")).sort();
+const withdrawn = existsSync(withdrawnDir)
+  ? (await readdir(withdrawnDir)).filter((name) => name.endsWith(".json")).sort()
+  : [];
+const entries = [
+  ...listed.map((file) => ({ file, from: dir, isWithdrawn: false })),
+  ...withdrawn.map((file) => ({ file, from: withdrawnDir, isWithdrawn: true })),
+];
 const seen = new Set();
 /** Impronta dell'icona -> id del modulo: ogni modulo ha un'icona sua. */
 const icons = new Map();
 const MAX_ICON = 40 * 1024;
 
 /** Icona del registry (plugins/<id>.svg): SVG semplice, senza script ne' risorse esterne. */
-async function checkIcon(file, id) {
+async function checkIcon(file, id, dir) {
   let icon;
   try {
     icon = await readFile(join(dir, `${id}.svg`));
@@ -58,10 +73,10 @@ async function checkIcon(file, id) {
   return icon;
 }
 
-for (const file of files) {
+for (const { file, from, isWithdrawn } of entries) {
   let entry;
   try {
-    entry = JSON.parse(await readFile(join(dir, file), "utf8"));
+    entry = JSON.parse(await readFile(join(from, file), "utf8"));
   } catch {
     fail(file, "JSON illeggibile");
     continue;
@@ -76,7 +91,7 @@ for (const file of files) {
   if (seen.has(plugin.id)) fail(file, `id ripetuto: ${plugin.id}`);
   seen.add(plugin.id);
 
-  const icon = await checkIcon(file, plugin.id);
+  const icon = await checkIcon(file, plugin.id, from);
 
   const versions = plugin.versions.map((v) => v.version);
   if (new Set(versions).size !== versions.length) fail(file, "versioni ripetute");
@@ -94,7 +109,8 @@ for (const file of files) {
     }
   }
 
-  if (offline) continue;
+  // I pacchetti dei plugin ritirati non si scaricano: potrebbero non esserci piu'.
+  if (offline || isWithdrawn) continue;
   for (const [position, version] of plugin.versions.entries()) {
     const where = `${file} ${version.version}`;
     let data;
@@ -140,4 +156,4 @@ if (errors.length > 0) {
   console.error(`Registry non valido:\n${errors.map((e) => `- ${e}`).join("\n")}`);
   process.exit(1);
 }
-console.log(`Registry valido: ${files.length} moduli${offline ? " (senza scaricare i pacchetti)" : ""}.`);
+console.log(`Registry valido: ${entries.length} moduli${offline ? " (senza scaricare i pacchetti)" : ""}.`);

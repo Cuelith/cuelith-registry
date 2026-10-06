@@ -147,3 +147,50 @@ test("indici: il primo ha solo i gratuiti e nessun campo nuovo, il secondo ha tu
   assert.equal(v2.plugins.find((p) => p.id === "prova.sette").access, "free");
   assert.ok(v2.plugins.find((p) => p.id === id).authorKey);
 });
+
+test("ritirato: fuori dagli indici, ma la sua licenza resta in licenses.json", () => {
+  const dir = registry([free("prova.libero"), paid("prova.visibile")]);
+  const gone = join(temp, `w${String(counter)}`);
+  mkdirSync(gone);
+  const entry = paid("prova.ritirato", { licensing: { provider: "lemonsqueezy", storeId: 7, productId: 8 } });
+  writeFileSync(join(gone, "prova.ritirato.json"), JSON.stringify(entry));
+  writeFileSync(join(gone, "prova.ritirato.svg"), icon(9999));
+
+  const checked = run("validate.mjs", ["--offline", "--dir", dir, "--withdrawn", gone]);
+  assert.equal(checked.ok, true, checked.out);
+
+  const out = join(temp, `outw${String(counter)}`);
+  const built = run("build-index.mjs", ["--dir", dir, "--withdrawn", gone, "--out", out]);
+  assert.equal(built.ok, true, built.out);
+  const v1 = JSON.parse(readFileSync(join(out, "index.json"), "utf8"));
+  const v2 = JSON.parse(readFileSync(join(out, "index-2.json"), "utf8"));
+  const licenses = JSON.parse(readFileSync(join(out, "licenses.json"), "utf8"));
+  // Nessuno dei due indici (quelli che leggono i programmi) nomina il ritirato.
+  assert.equal(JSON.stringify(v1).includes("prova.ritirato"), false);
+  assert.equal(JSON.stringify(v2).includes("prova.ritirato"), false);
+  assert.deepEqual(
+    licenses.plugins.map((p) => [p.id, p.withdrawn]),
+    [["prova.ritirato", true], ["prova.visibile", false]],
+  );
+  assert.deepEqual(licenses.plugins[0].licensing, { provider: "lemonsqueezy", storeId: 7, productId: 8 });
+  // I gratuiti non hanno licenza da rinnovare.
+  assert.equal(JSON.stringify(licenses).includes("prova.libero"), false);
+});
+
+test("ritirato: stesso id nella vetrina e tra i ritirati e' rifiutato; voce non valida anche", () => {
+  const dir = registry([paid("prova.doppio")]);
+  const gone = join(temp, `w2${String(counter)}`);
+  mkdirSync(gone);
+  writeFileSync(join(gone, "prova.doppio.json"), JSON.stringify(paid("prova.doppio")));
+  writeFileSync(join(gone, "prova.doppio.svg"), icon(7777));
+  const twice = run("validate.mjs", ["--offline", "--dir", dir, "--withdrawn", gone]);
+  assert.equal(twice.ok, false);
+  assert.match(twice.out, /id ripetuto/);
+
+  const bad = join(temp, `w3${String(counter)}`);
+  mkdirSync(bad);
+  const { licensing: _l, ...noLicensing } = paid("prova.rotto");
+  writeFileSync(join(bad, "prova.rotto.json"), JSON.stringify(noLicensing));
+  writeFileSync(join(bad, "prova.rotto.svg"), icon(5555));
+  assert.equal(run("validate.mjs", ["--offline", "--dir", registry([free("prova.altro")]), "--withdrawn", bad]).ok, false);
+});
