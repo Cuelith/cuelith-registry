@@ -50,8 +50,7 @@ jobs:
         working-directory: cuelith-core
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @cuelith-core/engine build
-          pnpm --filter @cuelith-core/conformance build
+          pnpm --filter "@cuelith-core/conformance..." build
       - name: Prova di tutti i plugin
         working-directory: cuelith-registry
         env:
