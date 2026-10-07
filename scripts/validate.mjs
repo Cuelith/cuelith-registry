@@ -34,6 +34,15 @@ const authorPublicKey = (authorKey) =>
     format: "der",
     type: "spki",
   });
+/** Dove chiedere aiuto: pagina https (senza utente@) o mailto:. */
+function isSupport(value) {
+  return (
+    typeof value === "string" &&
+    value.length <= 300 &&
+    (/^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#][^\s@]*)?$/i.test(value) ||
+      /^mailto:[^\s@,;?]+@[^\s@,;?]+\.[^\s@,;?]+$/i.test(value))
+  );
+}
 const errors = [];
 const fail = (file, message) => errors.push(`${file}: ${message}`);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -81,7 +90,13 @@ for (const { file, from, isWithdrawn } of entries) {
     fail(file, "JSON illeggibile");
     continue;
   }
-  const parsed = RegistryPluginSchema.safeParse(entry);
+  // "support" (dove chiedere aiuto) non fa parte dello schema che leggono le app: non va negli
+  // indici, solo in support.json (lo legge il sito). Si controlla qui, a parte.
+  const { support, ...forSchema } = entry;
+  if (support !== undefined && !isSupport(support)) {
+    fail(file, "support: serve un indirizzo https:// senza credenziali o un mailto:indirizzo");
+  }
+  const parsed = RegistryPluginSchema.safeParse(forSchema);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) fail(file, `${issue.path.join(".")}: ${issue.message}`);
     continue;

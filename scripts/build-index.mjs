@@ -45,12 +45,16 @@ const dormant = new Set(process.argv.includes("--no-dormant") ? [] : await loadD
 
 const files = (await readdir(dir)).filter((n) => n.endsWith(".json")).sort();
 const plugins = [];
+// Dove chiedere aiuto per plugin: non entra negli indici (le app li leggono con uno schema rigido).
+const supportLinks = {};
 for (const file of files) {
   const plugin = JSON.parse(await readFile(join(dir, file), "utf8"));
   // L'icona (controllata da validate.mjs) viaggia nell'indice: il marketplace
   // la mostra prima di installare, senza altre richieste.
   const icon = await readFile(join(dir, `${plugin.id}.svg`));
-  plugins.push({ ...plugin, icon: `data:image/svg+xml;base64,${icon.toString("base64")}` });
+  const { support, ...rest } = plugin;
+  if (support !== undefined) supportLinks[plugin.id] = support;
+  plugins.push({ ...rest, icon: `data:image/svg+xml;base64,${icon.toString("base64")}` });
 }
 const withdrawn = existsSync(withdrawnDir)
   ? await Promise.all(
@@ -91,6 +95,11 @@ const licenses = {
 };
 await mkdir(out, { recursive: true });
 await writeFile(join(out, "licenses.json"), `${JSON.stringify(licenses)}\n`);
+await writeFile(
+  join(out, "support.json"),
+  `${JSON.stringify({ schema: 1, support: Object.fromEntries(Object.entries(supportLinks).filter(([id]) => !dormant.has(id)).sort()) })}
+`,
+);
 await writeFile(join(out, "index.json"), `${JSON.stringify(v1)}\n`);
 await writeFile(join(out, "index-2.json"), `${JSON.stringify(v2)}\n`);
 console.log(`index.json con ${v1.plugins.length} plugin gratuiti, index-2.json con ${v2.plugins.length} plugin (${dormant.size} dormienti nascosti), licenses.json con ${licenses.plugins.length}.`);

@@ -217,3 +217,20 @@ test("dormienti: spariscono dai due indici ma restano in licenses.json; un elenc
   assert.equal(again.ok, true, again.out);
   assert.equal(JSON.parse(readFileSync(join(out2, "index.json"), "utf8")).plugins.length, 2);
 });
+
+test("support: va in support.json e non negli indici; indirizzi strani sono rifiutati", () => {
+  const dir = registry([free("prova.aiuto", { support: "https://example.com/aiuto" }), free("prova.posta", { support: "mailto:aiuto@example.com" }), free("prova.senza")]);
+  assert.equal(run("validate.mjs", ["--offline", "--dir", dir]).ok, true);
+  const out = join(temp, `out-support${String(counter)}`);
+  assert.equal(run("build-index.mjs", ["--dir", dir, "--out", out]).ok, true);
+  for (const name of ["index.json", "index-2.json"]) {
+    assert.equal(readFileSync(join(out, name), "utf8").includes("support"), false, name);
+  }
+  const support = JSON.parse(readFileSync(join(out, "support.json"), "utf8"));
+  assert.deepEqual(support.support, { "prova.aiuto": "https://example.com/aiuto", "prova.posta": "mailto:aiuto@example.com" });
+  for (const bad of ["http://example.com", "https://utente@example.com", "javascript:alert(1)", "mailto:a@b", "aiuto", 7]) {
+    const result = run("validate.mjs", ["--offline", "--dir", registry([free("prova.rotto", { support: bad })])]);
+    assert.equal(result.ok, false, String(bad));
+    assert.match(result.out, /support/);
+  }
+});
