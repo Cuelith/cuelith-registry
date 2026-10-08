@@ -9,7 +9,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { RegistryIndexSchema } from "@cuelith/protocol";
+import { RegistryExtrasSchema, RegistryIndexSchema } from "@cuelith/protocol";
 
 const root = join(import.meta.dirname, "..");
 // --dir <plugins> e --out <cartella>: per le prove.
@@ -45,6 +45,17 @@ const dormant = new Set(process.argv.includes("--no-dormant") ? [] : await loadD
 
 const files = (await readdir(dir)).filter((n) => n.endsWith(".json")).sort();
 const plugins = [];
+// Immagine di copertina e guida d'uso (protocollo 1.19): non entrano negli indici (le app gia'
+// installate rifiutano campi che non conoscono), ma in extras.json, che le app nuove leggono a parte.
+const extras = {};
+const COVERS = [["png", "image/png"], ["jpg", "image/jpeg"], ["jpeg", "image/jpeg"], ["webp", "image/webp"]];
+async function coverOf(id) {
+  for (const [ext, mime] of COVERS) {
+    const file = join(dir, `${id}.${ext}`);
+    if (existsSync(file)) return `data:${mime};base64,${(await readFile(file)).toString("base64")}`;
+  }
+  return undefined;
+}
 // Dove chiedere aiuto per plugin: non entra negli indici (le app li leggono con uno schema rigido).
 const supportLinks = {};
 for (const file of files) {
@@ -52,8 +63,12 @@ for (const file of files) {
   // L'icona (controllata da validate.mjs) viaggia nell'indice: il marketplace
   // la mostra prima di installare, senza altre richieste.
   const icon = await readFile(join(dir, `${plugin.id}.svg`));
-  const { support, ...rest } = plugin;
+  const { support, guide, ...rest } = plugin;
   if (support !== undefined) supportLinks[plugin.id] = support;
+  const image = await coverOf(plugin.id);
+  if (guide !== undefined || image !== undefined) {
+    extras[plugin.id] = { ...(image === undefined ? {} : { image }), ...(guide === undefined ? {} : { guide }) };
+  }
   plugins.push({ ...rest, icon: `data:image/svg+xml;base64,${icon.toString("base64")}` });
 }
 const withdrawn = existsSync(withdrawnDir)
@@ -100,6 +115,13 @@ await writeFile(
   `${JSON.stringify({ schema: 1, support: Object.fromEntries(Object.entries(supportLinks).filter(([id]) => !dormant.has(id)).sort()) })}
 `,
 );
+const extrasFile = {
+  schema: 1,
+  generatedAt,
+  plugins: Object.fromEntries(Object.entries(extras).filter(([id]) => !dormant.has(id)).sort(([a], [b]) => a.localeCompare(b))),
+};
+RegistryExtrasSchema.parse(extrasFile);
+await writeFile(join(out, "extras.json"), `${JSON.stringify(extrasFile)}\n`);
 await writeFile(join(out, "index.json"), `${JSON.stringify(v1)}\n`);
 await writeFile(join(out, "index-2.json"), `${JSON.stringify(v2)}\n`);
 console.log(`index.json con ${v1.plugins.length} plugin gratuiti, index-2.json con ${v2.plugins.length} plugin (${dormant.size} dormienti nascosti), licenses.json con ${licenses.plugins.length}.`);

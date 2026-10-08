@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
+  COVER_MAX_BYTES,
   packageSignatureMessage,
   PluginManifestSchema,
   RegistryPluginSchema,
@@ -60,6 +61,33 @@ const seen = new Set();
 const icons = new Map();
 const MAX_ICON = 40 * 1024;
 
+const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp"];
+/** Che immagine e' davvero, dai primi byte (non dal nome): "png", "jpeg", "webp" o niente. */
+export function imageKind(bytes) {
+  if (bytes.length > 8 && bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))) return "png";
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (bytes.length > 12 && bytes.subarray(0, 4).toString("latin1") === "RIFF" && bytes.subarray(8, 12).toString("latin1") === "WEBP") return "webp";
+  return undefined;
+}
+
+/**
+ * Immagine di copertina del registry (plugins/<id>.png|jpg|jpeg|webp), facoltativa (protocollo
+ * 1.19): un solo file, entro il limite, e un'immagine vera del formato dichiarato dal nome.
+ */
+async function checkImage(file, id, dir) {
+  const found = IMAGE_EXTS.filter((ext) => existsSync(join(dir, `${id}.${ext}`)));
+  if (found.length === 0) return undefined;
+  if (found.length > 1) fail(file, "ci sono piu' immagini di copertina: ne serve una sola");
+  const ext = found[0];
+  const bytes = await readFile(join(dir, `${id}.${ext}`));
+  if (bytes.length > COVER_MAX_BYTES) fail(file, `immagine troppo grande (massimo ${COVER_MAX_BYTES} byte)`);
+  const kind = imageKind(bytes);
+  if (kind === undefined || kind !== (ext === "jpg" ? "jpeg" : ext)) {
+    fail(file, `il file ${id}.${ext} non e' un'immagine ${ext === "jpg" ? "jpeg" : ext}`);
+  }
+  return bytes;
+}
+
 /** Icona del registry (plugins/<id>.svg): SVG semplice, senza script ne' risorse esterne. */
 async function checkIcon(file, id, dir) {
   let icon;
@@ -93,6 +121,9 @@ for (const { file, from, isWithdrawn } of entries) {
   // "support" (dove chiedere aiuto) non fa parte dello schema che leggono le app: non va negli
   // indici, solo in support.json (lo legge il sito). Si controlla qui, a parte.
   const { support, ...forSchema } = entry;
+  // L'immagine e' un file accanto alla voce (plugins/<id>.png...), non un campo del JSON.
+  if (entry.image !== undefined) fail(file, "image: l'immagine e' un file plugins/<id>.png (o jpg, webp), non un campo");
+  delete forSchema.image;
   if (support !== undefined && !isSupport(support)) {
     fail(file, "support: serve un indirizzo https:// senza credenziali o un mailto:indirizzo");
   }
@@ -107,6 +138,7 @@ for (const { file, from, isWithdrawn } of entries) {
   seen.add(plugin.id);
 
   const icon = await checkIcon(file, plugin.id, from);
+  const cover = await checkImage(file, plugin.id, from);
 
   const versions = plugin.versions.map((v) => v.version);
   if (new Set(versions).size !== versions.length) fail(file, "versioni ripetute");
@@ -151,6 +183,14 @@ for (const { file, from, isWithdrawn } of entries) {
         if (packaged === undefined) fail(where, "il pacchetto non ha l'icona (campo icon del manifest)");
         else if (icon !== undefined && !Buffer.from(packaged).equals(icon)) {
           fail(where, `l'icona del pacchetto e' diversa da plugins/${plugin.id}.svg`);
+        }
+        // Se il registry ha un'immagine di copertina, e' quella del pacchetto, identica.
+        if (cover !== undefined) {
+          const image = manifest.image === undefined ? undefined : entries[manifest.image];
+          if (image === undefined) fail(where, "il pacchetto non ha l'immagine di copertina (campo image del manifest)");
+          else if (!Buffer.from(image).equals(cover)) {
+            fail(where, `l'immagine del pacchetto e' diversa da quella di plugins/${plugin.id}`);
+          }
         }
       }
     } catch {

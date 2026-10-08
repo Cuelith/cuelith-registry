@@ -234,3 +234,62 @@ test("support: va in support.json e non negli indici; indirizzi strani sono rifi
     assert.match(result.out, /support/);
   }
 });
+
+const PNG = Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), Buffer.from("immagine di prova")]);
+const step = { title: "Primo passo", body: "Apri lo strumento e scegli un brano." };
+
+test("immagine e guida (1.19): vanno in extras.json, mai negli indici", () => {
+  const dir = registry([free("prova.copertina", { guide: { it: [step], en: [step] } }), free("prova.nuda")]);
+  writeFileSync(join(dir, "prova.copertina.png"), PNG);
+  assert.equal(run("validate.mjs", ["--offline", "--dir", dir]).ok, true);
+  const out = join(temp, `out-extras${String(counter)}`);
+  assert.equal(run("build-index.mjs", ["--dir", dir, "--out", out]).ok, true);
+  for (const name of ["index.json", "index-2.json"]) {
+    const text = readFileSync(join(out, name), "utf8");
+    assert.equal(text.includes("guide"), false, `${name} non porta la guida`);
+    assert.equal(text.includes("data:image/png"), false, `${name} non porta l'immagine`);
+  }
+  const extras = JSON.parse(readFileSync(join(out, "extras.json"), "utf8"));
+  assert.equal(extras.schema, 1);
+  assert.deepEqual(Object.keys(extras.plugins), ["prova.copertina"]);
+  assert.match(extras.plugins["prova.copertina"].image, /^data:image\/png;base64,/);
+  assert.deepEqual(extras.plugins["prova.copertina"].guide.it, [step]);
+});
+
+test("immagine di copertina: solo un file vero, uno solo, entro il limite, e non come campo", () => {
+  const bad = (name, file, bytes, extra = {}) => {
+    const dir = registry([free(name, extra)]);
+    if (file !== undefined) writeFileSync(join(dir, file), bytes);
+    return run("validate.mjs", ["--offline", "--dir", dir]);
+  };
+  // Un file di testo con l'estensione di un'immagine.
+  let result = bad("prova.finta", "prova.finta.png", Buffer.from("non sono un'immagine"));
+  assert.equal(result.ok, false);
+  assert.match(result.out, /non e' un'immagine png/);
+  // Troppo grande.
+  result = bad("prova.grande", "prova.grande.png", Buffer.concat([PNG, Buffer.alloc(160 * 1024)]));
+  assert.equal(result.ok, false);
+  assert.match(result.out, /troppo grande/);
+  // Due immagini per lo stesso plugin.
+  const dir = registry([free("prova.due")]);
+  writeFileSync(join(dir, "prova.due.png"), PNG);
+  writeFileSync(join(dir, "prova.due.webp"), Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP"), Buffer.alloc(8)]));
+  result = run("validate.mjs", ["--offline", "--dir", dir]);
+  assert.equal(result.ok, false);
+  assert.match(result.out, /ne serve una sola/);
+  // Come campo del JSON: no, e' un file.
+  result = bad("prova.campo", undefined, undefined, { image: "data:image/png;base64,AAAA" });
+  assert.equal(result.ok, false);
+  assert.match(result.out, /image: l'immagine e' un file/);
+  // Estensione e formato devono coincidere (JPEG con nome .jpg).
+  const jpg = registry([free("prova.jpeg")]);
+  writeFileSync(join(jpg, "prova.jpeg.jpg"), Buffer.concat([Buffer.from("ffd8ff", "hex"), Buffer.alloc(32)]));
+  assert.equal(run("validate.mjs", ["--offline", "--dir", jpg]).ok, true);
+});
+
+test("guida non valida: troppi passi o campi sconosciuti sono rifiutati", () => {
+  const tooMany = registry([free("prova.passi", { guide: { it: Array(9).fill(step) } })]);
+  assert.equal(run("validate.mjs", ["--offline", "--dir", tooMany]).ok, false);
+  const extra = registry([free("prova.campi", { guide: { it: [{ ...step, image: "x" }] } })]);
+  assert.equal(run("validate.mjs", ["--offline", "--dir", extra]).ok, false);
+});

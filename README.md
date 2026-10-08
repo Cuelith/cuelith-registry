@@ -13,6 +13,7 @@ Cuelith legge l'indice pubblicato su GitHub Pages (vedi sotto), mostra i moduli 
    - il pacchetto non si scarica, oppure dimensione o impronta SHA-256 non corrispondono;
    - il manifest del pacchetto dichiara id, versione, famiglia, compatibilità o **permessi** diversi da quelli scritti qui;
    - manca l'**icona**, non è un SVG semplice (niente script o risorse esterne), è diversa da quella del pacchetto o è **identica a quella di un altro modulo**: ogni modulo ha la sua.
+   - se c'è un'**immagine di copertina** (`plugins/<id>.png`, `.jpg` o `.webp`, al massimo 150 KB, una sola): non è un'immagine vera di quel tipo, o è diversa da quella dichiarata dal pacchetto (campo `image`). Facoltativa; la **guida d'uso** (campo `guide` della voce) segue lo schema del protocollo 1.19. Immagine e guida non entrano negli indici ma in `extras.json`, che le app nuove leggono a parte.
 4. Quando la pull request entra in `main`, l'indice viene pubblicato su GitHub Pages.
 
 ## Plugin a pagamento (decisione 0013)
