@@ -10,6 +10,18 @@
   "verified": true,
   "versions": [
     {
+      "version": "0.3.0",
+      "engines": {
+        "cuelith": ">=0.1.0 <1.0.0",
+        "protocol": "^1.24.0"
+      },
+      "url": "https://github.com/Cuelith/plugin-richtext/releases/download/v0.3.0/cuelith.richtext-0.3.0.cpkg",
+      "sha256": "81c6b94b806baa4b659b830ed7cea13d0e534dd5e96c77f508854bc6a3fcf29c",
+      "size": 66900,
+      "permissions": [],
+      "published": "2026-10-10T19:45:22.000Z"
+    },
+    {
       "version": "0.2.0",
       "engines": {
         "cuelith": ">=0.1.0 <1.0.0",
