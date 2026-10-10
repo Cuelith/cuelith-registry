@@ -1,0 +1,25 @@
+{
+  "id": "cuelith.richtext",
+  "name": "Formattazione",
+  "description": "Ingrandisci, metti in grassetto, in corsivo o colora solo alcune parole di un testo, negli editor dei plugin che lo supportano.",
+  "publisher": "Cuelith",
+  "license": "GPL-3.0-or-later",
+  "repository": "https://github.com/Cuelith/plugin-richtext",
+  "support": "https://github.com/Cuelith/plugin-richtext/issues",
+  "family": "function",
+  "verified": true,
+  "versions": [
+    {
+      "version": "0.2.0",
+      "engines": {
+        "cuelith": ">=0.1.0 <1.0.0",
+        "protocol": "^1.23.0"
+      },
+      "url": "https://github.com/Cuelith/plugin-richtext/releases/download/v0.2.0/cuelith.richtext-0.2.0.cpkg",
+      "sha256": "371eaa0cfcbbdc47d6bf7708651e22f7a838158447af6585b178e86ed8916bab",
+      "size": 66046,
+      "permissions": [],
+      "published": "2026-10-10T11:14:00.000Z"
+    }
+  ]
+}
